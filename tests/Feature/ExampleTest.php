@@ -27,6 +27,28 @@ class ExampleTest extends TestCase
         $this->assertSame(9, $result->total_quantity);
     }
 
+    /**
+     * This test is currently failing. From what I can see, it's because of line 625 in QueriesRelationships,
+     * where it tries to add the "relationCountHash" as a prefix to the column if the current query's `from`
+     * matches the $relation's base query's `from`. Because of both queries being for the `transactions`
+     * table, this condition evaluates to true and we end up with the prefix.
+     *
+     * The error:
+     *    SQLSTATE[HY000]: General error: 1 no such column: laravel_reserved_0.transaction_transaction.amount
+     *
+     *    (SQL:
+     *        select
+     *            "transactions".*,
+     *            (
+     *                select sum("laravel_reserved_0"."transaction_transaction"."amount")
+     *                from "transactions" as "laravel_reserved_0"
+     *                inner join "transaction_transaction" on "laravel_reserved_0"."id" = "transaction_transaction"."allocated_to_id"
+     *                where "transactions"."id" = "transaction_transaction"."allocated_from_id"
+     *            ) as "total_allocated"
+     *        from "transactions"
+     *        limit 1
+     *    )
+     */
     public function test_pivot_sum_with_same_table()
     {
         $transaction = Transaction::factory()->create(['total' => 900]);
